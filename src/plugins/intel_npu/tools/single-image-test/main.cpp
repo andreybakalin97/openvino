@@ -243,7 +243,7 @@ void parseCommandLine(int argc, char* argv[]) {
     std::cout << "    Model output layout:                      " << FLAGS_oml << std::endl;
     std::cout << "    Img as binary:                            " << FLAGS_img_as_bin << std::endl;
     std::cout << "    Bin input file precision:                 " << FLAGS_img_bin_precision << std::endl;
-    std::cout << "    Device:                                   " << FLAGS_device << std::endl;
+    std::cout << "    Device:                                   " << (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device) << std::endl;
     std::cout << "    Config file:                              " << FLAGS_config << std::endl;
     std::cout << "    Run test:                                 " << FLAGS_run_test << std::endl;
     std::cout << "    Performance counters:                     " << FLAGS_pc << std::endl;
@@ -1468,7 +1468,7 @@ static void printPerformanceCountsAndLatency(size_t numberOfTestCase, const Prof
 
     if (!profilingData.empty()) {
         std::cout << "Performance counts for " << numberOfTestCase << "-th infer request:" << std::endl;
-        printPerformanceCounts(profilingData, std::cout, FLAGS_device, false);
+        printPerformanceCounts(profilingData, std::cout, (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device), false);
     }
 
     std::cout << "Latency: " << std::fixed << std::setprecision(2) << durationMs.count() << " ms" << std::endl;
@@ -1517,19 +1517,19 @@ const char TEMPLATE_LIB[] = "libopenvino_template_plugin.so";
 #endif
 
 void setupOVCore(ov::Core& core) {
-    auto flagDevice = FLAGS_device;
+    auto flagDevice = (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device);
 
-    if (FLAGS_device == "TEMPLATE") {
-        core.register_plugin(TEMPLATE_LIB, FLAGS_device);
+    if (flagDevice == "TEMPLATE") {
+        core.register_plugin(TEMPLATE_LIB, flagDevice);
     }
 
     if (!FLAGS_log_level.empty()) {
         core.set_property(flagDevice, {{ov::log::level.name(), FLAGS_log_level}});
     }
 
-    if (FLAGS_device == "CPU") {
-        core.set_property(flagDevice, {{"LP_TRANSFORMS_MODE", "NO"}});
-    }
+    // if (FLAGS_device == "CPU") {
+    //     core.set_property(flagDevice, {{"LP_TRANSFORMS_MODE", "NO"}});
+    // }
 
     if (FLAGS_pc) {
         core.set_property(flagDevice, {{ov::enable_profiling.name(), true}});
@@ -1917,7 +1917,7 @@ static int runSingleImageTest() {
 
             std::cout << "Performing reshape" << std::endl;
             reshape(std::move(inputsInfo), infoMap, model, FLAGS_shape,
-                    FLAGS_override_model_batch_size, FLAGS_device);
+                    FLAGS_override_model_batch_size, (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device));
 
             ov::preprocess::PrePostProcessor ppp(model);
 
@@ -2037,7 +2037,7 @@ static int runSingleImageTest() {
             std::cout << "Compile model" << std::endl;
             model = ppp.build();
             printInputAndOutputsInfoShort(*model);
-            compiledModel = core.compile_model(model, FLAGS_device);
+            compiledModel = core.compile_model(model,  (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device));
         } else {
             std::cout << "Import network " << FLAGS_network << std::endl;
 
@@ -2049,7 +2049,7 @@ static int runSingleImageTest() {
 
             std::ifstream file(FLAGS_network, std::ios_base::in | std::ios_base::binary);
             OPENVINO_ASSERT(file.is_open(), "Can't open file ", FLAGS_network, " for read");
-            compiledModel = core.import_model(file, FLAGS_device);
+            compiledModel = core.import_model(file, (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device));
         }
 
         // store compiled model, if required
@@ -2147,7 +2147,7 @@ static int runSingleImageTest() {
                 inTensors.emplace(inputInfo.get_any_name(), std::move(tensor));
             }
 
-            std::cout << "Run inference on " << FLAGS_device << std::endl;
+            std::cout << "Run inference on " << (FLAGS_device == "CPU" ? "TEMPLATE" : FLAGS_device) << std::endl;
 
             const auto startTime = Time::now();
             const auto outInference = runInfer(inferRequest, compiledModel, inTensors, dumpedInputsPaths);
