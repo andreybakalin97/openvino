@@ -299,7 +299,7 @@ ov::OutputVector ov::pass::GroupQueryAttentionDecomposition::decompose(
     // the softmax, then sliced out. head_sink provides a per-head value; plain smooth_softmax uses 0.
     ov::Output<ov::Node> sink;
     const bool has_head_sink = has_input(GQAInputs::HEAD_SINK);
-    if (has_head_sink || smooth_softmax) {
+    if (has_head_sink && smooth_softmax) {
         const auto sink_shape = register_new_node(v0::Constant::create(ov::element::i64, ov::Shape{4}, {1, -1, 1, 1}));
         if (has_head_sink) {
             auto head_sink = get_input(GQAInputs::HEAD_SINK);
