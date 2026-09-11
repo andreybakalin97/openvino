@@ -331,7 +331,7 @@ ov::OutputVector ov::pass::GroupQueryAttentionDecomposition::decompose(
         external_bias = get_input(GQAInputs::ATTENTION_BIAS);
     }
     const bool has_head_sink = has_input(GQAInputs::HEAD_SINK);
-    const bool has_sink = has_head_sink || smooth_softmax;
+    const bool has_sink = true;
     const auto mask = make_attention_mask(curr_seqlen_scalar,
                                           concat_kv_len_scalar,
                                           concat_kv_len,
